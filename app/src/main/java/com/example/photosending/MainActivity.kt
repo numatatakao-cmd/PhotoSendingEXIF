@@ -14,11 +14,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import com.google.android.gms.location.LocationServices
 import java.io.File
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var photoUri: Uri
     private lateinit var mailAddress: String
+    private lateinit var editMail: AutoCompleteTextView
 
     private var latitude = 0.0
     private var longitude = 0.0
@@ -31,9 +34,35 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
+        val prefs =
+            getSharedPreferences(
+                "mail_history",
+                MODE_PRIVATE
+            )
 
-        val editMail = findViewById<EditText>(R.id.editMail)
+        val savedMails =
+            prefs.getStringSet(
+                "mails",
+                mutableSetOf()
+            ) ?: mutableSetOf()
+
+        editMail =
+            findViewById<AutoCompleteTextView>(R.id.editMail)
         val btnSend = findViewById<Button>(R.id.btnSend)
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            savedMails.toList()
+        )
+
+        editMail.setAdapter(adapter)
+
+        editMail.threshold = 1
+
+        editMail.setOnClickListener {
+            editMail.showDropDown()
+        }
+
 
         // 位置情報許可
         ActivityCompat.requestPermissions(
@@ -45,6 +74,14 @@ class MainActivity : AppCompatActivity() {
         btnSend.setOnClickListener {
 
             mailAddress = editMail.text.toString()
+            savedMails.add(mailAddress)
+
+            prefs.edit()
+                .putStringSet(
+                    "mails",
+                    savedMails
+                )
+                .apply()
 
             // GPS取得
             getLocation()
@@ -164,5 +201,6 @@ class MainActivity : AppCompatActivity() {
                 )
             )
         }
+        editMail.setText(mailAddress)
     }
 }
