@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var photoUri: Uri
     private lateinit var mailAddress: String
     private lateinit var editMail: AutoCompleteTextView
+    private lateinit var adapter: ArrayAdapter<String>
 
     private var latitude = 0.0
     private var longitude = 0.0
@@ -40,16 +41,18 @@ class MainActivity : AppCompatActivity() {
                 MODE_PRIVATE
             )
 
-        val savedMails =
-            prefs.getStringSet(
+        val savedMails = prefs
+            .getStringSet(
                 "mails",
                 mutableSetOf()
-            ) ?: mutableSetOf()
+            )
+            ?.toMutableSet()
+            ?: mutableSetOf()
 
         editMail =
             findViewById<AutoCompleteTextView>(R.id.editMail)
         val btnSend = findViewById<Button>(R.id.btnSend)
-        val adapter = ArrayAdapter(
+        adapter = ArrayAdapter(
             this,
             android.R.layout.simple_dropdown_item_1line,
             savedMails.toList()
@@ -58,9 +61,16 @@ class MainActivity : AppCompatActivity() {
         editMail.setAdapter(adapter)
 
         editMail.threshold = 1
-
         editMail.setOnClickListener {
             editMail.showDropDown()
+            editMail.selectAll()
+        }
+
+        editMail.setOnTouchListener { _, _ ->
+
+            editMail.showDropDown()
+
+            false
         }
 
 
@@ -74,6 +84,14 @@ class MainActivity : AppCompatActivity() {
         btnSend.setOnClickListener {
 
             mailAddress = editMail.text.toString()
+            val savedMails = prefs
+                .getStringSet(
+                    "mails",
+                    mutableSetOf()
+                )
+                ?.toMutableSet()
+                ?: mutableSetOf()
+
             savedMails.add(mailAddress)
 
             prefs.edit()
@@ -82,6 +100,21 @@ class MainActivity : AppCompatActivity() {
                     savedMails
                 )
                 .apply()
+
+            adapter.clear()
+            adapter.addAll(savedMails.toList())
+            adapter.notifyDataSetChanged()
+            savedMails.add(mailAddress)
+
+            prefs.edit()
+                .putStringSet(
+                    "mails",
+                    savedMails
+                )
+                .apply()
+            adapter.clear()
+            adapter.addAll(savedMails.toList())
+            adapter.notifyDataSetChanged()
 
             // GPS取得
             getLocation()
