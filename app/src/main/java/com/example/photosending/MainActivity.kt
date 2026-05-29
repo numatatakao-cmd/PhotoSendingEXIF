@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Button
 import android.widget.EditText
@@ -16,10 +17,13 @@ import com.google.android.gms.location.LocationServices
 import java.io.File
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import androidx.exifinterface.media.ExifInterface
+import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var photoUri: Uri
+    private lateinit var photoFile: File
     private lateinit var mailAddress: String
     private lateinit var editMail: AutoCompleteTextView
     private lateinit var adapter: ArrayAdapter<String>
@@ -52,6 +56,9 @@ class MainActivity : AppCompatActivity() {
         editMail =
             findViewById<AutoCompleteTextView>(R.id.editMail)
         val btnSend = findViewById<Button>(R.id.btnSend)
+        val btnDeleteMail =
+            findViewById<Button>(R.id.btnDeleteMail)
+        findViewById<Button>(R.id.btnDeleteMail)
         adapter = ArrayAdapter(
             this,
             android.R.layout.simple_dropdown_item_1line,
@@ -80,6 +87,35 @@ class MainActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
             1
         )
+        btnDeleteMail.setOnClickListener {
+
+            val mailToDelete =
+                editMail.text.toString()
+
+            val updatedMails =
+                savedMails.toMutableSet()
+
+            if (updatedMails.remove(mailToDelete)) {
+
+                prefs.edit()
+                    .putStringSet(
+                        "mails",
+                        updatedMails
+                    )
+                    .apply()
+
+                adapter.clear()
+                adapter.addAll(updatedMails)
+
+                Toast.makeText(
+                    this,
+                    "削除しました",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                editMail.setText("")
+            }
+        }
 
         btnSend.setOnClickListener {
 
@@ -120,10 +156,19 @@ class MainActivity : AppCompatActivity() {
             getLocation()
 
             // 写真保存先
-            val photoFile = File.createTempFile(
+            val picturesDir =
+                getExternalFilesDir(
+                    Environment.DIRECTORY_PICTURES
+                )
+
+            if (picturesDir == null) {
+                return@setOnClickListener
+            }
+
+            photoFile = File.createTempFile(
                 "photo_",
                 ".jpg",
-                cacheDir
+                picturesDir
             )
 
             // URI
@@ -187,7 +232,22 @@ class MainActivity : AppCompatActivity() {
         )
 
         if (requestCode == CAMERA_REQUEST_CODE) {
+            try {
 
+                val exif =
+                    ExifInterface(photoFile.absolutePath)
+
+                exif.setLatLong(
+                    latitude,
+                    longitude
+                )
+
+                exif.saveAttributes()
+
+            } catch (e: Exception) {
+
+                e.printStackTrace()
+            }
             val mapUrl =
                 "https://maps.google.com/?q=$latitude,$longitude"
 

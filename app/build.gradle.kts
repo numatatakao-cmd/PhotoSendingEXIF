@@ -45,4 +45,5 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.google.android.gms:play-services-location:21.2.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }
